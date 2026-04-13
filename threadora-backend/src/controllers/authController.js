@@ -104,13 +104,16 @@ const getMe = async (req, res, next) => {
 
 // POST /api/auth/google
 // Verifies a Google ID token and either creates a new account or signs into
-// an existing one. Supports the 'test-token' shortcut for internal dev testing only.
+// an existing one.
 const googleLogin = async (req, res, next) => {
   try {
     const { idToken, mockEmail, mockName, mockId } = req.body;
 
     let payload;
-    if (idToken === 'test-token') {
+
+    // Development-only shortcut for testing Google auth without a real token.
+    // Completely disabled in production.
+    if (idToken === 'test-token' && process.env.NODE_ENV !== 'production') {
       payload = { email: mockEmail, name: mockName, sub: mockId };
     } else {
       const ticket = await googleClient.verifyIdToken({

@@ -190,18 +190,23 @@ export default function LandingPage() {
       </main>
 
       <footer className="max-w-7xl mx-auto px-6 py-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 relative z-10">
-        <div className="flex flex-col items-center md:items-start gap-4">
+        <div className="flex flex-col items-center md:items-start gap-4 flex-1">
           <span className="text-xl font-bold bg-gradient-to-r from-[#6366F1] to-[#22D3EE] bg-clip-text text-transparent">Threadora</span>
           <p className="text-gray-500 text-xs tracking-widest uppercase">Crafted by Manishrao2004</p>
         </div>
-        <div className="flex gap-8 text-sm text-gray-400">
-          {/* GitHub source code repo link to be included later */}
-          <a className="hover:text-primary transition-colors flex items-center gap-2" href="#">
+        <div className="flex gap-8 text-sm text-gray-400 flex-1 justify-center">
+          {/* GitHub source code repo */}
+          <a 
+            className="hover:text-white transition-colors flex items-center gap-2 text-gray-400" 
+            href="https://github.com/Manishrao2004/Threadora"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <Code className="w-4 h-4" />
-            Source Code (Coming Soon)
+            Source Code
           </a>
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-4 flex-1 justify-end">
           <a className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" href="https://github.com/Manishrao2004" target="_blank" rel="noopener noreferrer" title="GitHub: Manishrao2004">
             <Github className="w-4 h-4 text-gray-400 hover:text-white transition-colors" />
           </a>

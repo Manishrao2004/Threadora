@@ -19,7 +19,13 @@ module.exports = {
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
 
   // Email (Resend)
-  RESEND_API_KEY: process.env.RESEND_API_KEY
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+
+  // Rate Limiting
+  // Dev default: 10,000 req / 15 min (effectively unlimited for local work)
+  // Prod default: 500 req / 15 min per IP (aggressive users blocked, normal users never hit it)
+  RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
+  RATE_LIMIT_MAX:       parseInt(process.env.RATE_LIMIT_MAX, 10)        || (process.env.NODE_ENV === 'production' ? 500 : 10000)
 };
 
 // --- Validation ---

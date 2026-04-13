@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./src/config/db");
-const { PORT } = require("./src/config/env");
+const { PORT, FRONTEND_URL, NODE_ENV } = require("./src/config/env");
 
 // ── Core middleware ────────────────────────────────────────────────────────────
 const apiLimiter      = require("./src/middleware/rateLimiter");
@@ -21,9 +21,17 @@ const adminRoutes    = require("./src/routes/adminRoutes");
 
 const app = express();
 
-// Open CORS is intentional — supports ngrok tunnels and local dev without
-// a fixed origin. Lock this down to FRONTEND_URL before going to production.
-app.use(cors());
+// Trust the first proxy hop (required on Render — sits behind a load balancer).
+// Without this, express-rate-limit sees every request as the same internal IP,
+// making IP-based limiting useless in production.
+app.set('trust proxy', 1);
+
+// Configure CORS
+const corsOptions = {
+  origin: NODE_ENV === 'production' ? FRONTEND_URL : '*',
+  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(apiLimiter);
 

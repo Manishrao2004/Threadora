@@ -8,7 +8,9 @@
   html, body {
     @apply bg-[#0B0F14] text-[#E0E2EA] antialiased;
     font-family: 'Inter', sans-serif;
-    overflow-x: hidden;
+    /* overflow-x: clip instead of hidden — using hidden on <html> creates a new
+       scroll container that swallows trackpad vertical-scroll events in Chrome/Edge */
+    overflow-x: clip;
   }
   html {
     font-size: 14px;
