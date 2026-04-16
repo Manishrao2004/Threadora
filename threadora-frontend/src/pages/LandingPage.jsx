@@ -18,7 +18,7 @@ export default function LandingPage() {
   return (
     <div className="bg-[#0B0F14] text-[#E5E7EB] font-['Inter'] min-h-screen">
       {/* TopNavBar */}
-      <nav className="fixed top-0 w-full z-50 glass-panel flex justify-between items-center h-16 px-6">
+      <nav className="fixed top-0 left-0 w-[100vw] z-50 glass-panel flex justify-between items-center h-16 px-6">
         <div className="flex items-center gap-8">
           <span className="text-xl font-bold bg-gradient-to-r from-[#6366F1] to-[#22D3EE] bg-clip-text text-transparent">
             Threadora

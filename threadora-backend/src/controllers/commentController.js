@@ -1,5 +1,6 @@
 const Comment = require('../models/Comment');
 const Thread  = require('../models/Thread');
+const Vote    = require('../models/Vote');
 const { updateThreadScore }        = require('../services/rankingService');
 const { checkContentAgainstRules } = require('../services/moderationService');
 const { CREDIBILITY_SCORES, changeUserCredibility } = require('../services/credibilityService');
@@ -21,6 +22,17 @@ const getCommentsByThreadId = async (req, res, next) => {
       .populate('authorId', 'username role credibilityScore isSuspended')
       .sort({ score: -1, createdAt: 1 });
 
+    // ── Batch-lookup user votes ─────────────────────────────────────────────
+    let voteMap = new Map();
+    if (req.user && comments.length > 0) {
+      const commentIds = comments.map(c => c._id);
+      const votes = await Vote.find({
+        commentId: { $in: commentIds },
+        userId: req.user._id
+      }).lean();
+      votes.forEach(v => voteMap.set(v.commentId.toString(), v.type));
+    }
+
     // ── Build comment tree ────────────────────────────────────────────────────
     const commentMap = new Map();
     const rootComments = [];
@@ -29,6 +41,7 @@ const getCommentsByThreadId = async (req, res, next) => {
     comments.forEach(c => {
       const obj = c.toObject();
       obj.replies = [];
+      obj.userVote = voteMap.get(obj._id.toString()) || null;
 
       if (obj.isDeleted) {
         obj.content  = '[comment deleted by user]';

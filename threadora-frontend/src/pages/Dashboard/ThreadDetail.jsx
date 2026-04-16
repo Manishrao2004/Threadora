@@ -41,6 +41,7 @@ export default function ThreadDetail() {
   const [thread, setThread]     = useState(null);
   const [comments, setComments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userVote, setUserVote]   = useState(null);
 
   // Main reply composer state
   const [replyContent, setReplyContent]   = useState('');
@@ -72,6 +73,7 @@ export default function ThreadDetail() {
     ])
       .then(([threadData, commentsData]) => {
         setThread(threadData);
+        setUserVote(threadData.userVote || null);
         setComments(commentsData);
       })
       .catch(() => {
@@ -123,18 +125,50 @@ export default function ThreadDetail() {
 
   const handleThreadUpvote = async () => {
     if (!user) { toast.error('Sign in to vote on threads'); return; }
+    // Optimistic update
+    const prevThread = thread;
+    const prevVote = userVote;
+    const isUndo = userVote === 'upvote';
+    const isFlip = userVote === 'downvote';
+    setUserVote(isUndo ? null : 'upvote');
+    setThread(prev => ({
+      ...prev,
+      upvotes:   isUndo ? Math.max(0, prev.upvotes - 1) : prev.upvotes + 1,
+      downvotes: isFlip ? Math.max(0, prev.downvotes - 1) : prev.downvotes
+    }));
     try {
       const data = await upvoteThread(threadId);
       setThread(prev => ({ ...prev, upvotes: data.upvotes, downvotes: data.downvotes }));
-    } catch { toast.error('Failed to upvote'); }
+      setUserVote(data.userVote);
+    } catch {
+      setThread(prevThread);
+      setUserVote(prevVote);
+      toast.error('Failed to upvote');
+    }
   };
 
   const handleThreadDownvote = async () => {
     if (!user) { toast.error('Sign in to vote on threads'); return; }
+    // Optimistic update
+    const prevThread = thread;
+    const prevVote = userVote;
+    const isUndo = userVote === 'downvote';
+    const isFlip = userVote === 'upvote';
+    setUserVote(isUndo ? null : 'downvote');
+    setThread(prev => ({
+      ...prev,
+      downvotes: isUndo ? Math.max(0, prev.downvotes - 1) : prev.downvotes + 1,
+      upvotes:   isFlip ? Math.max(0, prev.upvotes - 1) : prev.upvotes
+    }));
     try {
       const data = await downvoteThread(threadId);
       setThread(prev => ({ ...prev, upvotes: data.upvotes, downvotes: data.downvotes }));
-    } catch { toast.error('Failed to downvote'); }
+      setUserVote(data.userVote);
+    } catch {
+      setThread(prevThread);
+      setUserVote(prevVote);
+      toast.error('Failed to downvote');
+    }
   };
 
   const handleSave = async () => {
@@ -286,6 +320,7 @@ export default function ThreadDetail() {
             onDownvote={handleThreadDownvote}
             variant="detail"
             disabled={!user}
+            userVote={userVote}
           />
 
           {/* Comment count */}

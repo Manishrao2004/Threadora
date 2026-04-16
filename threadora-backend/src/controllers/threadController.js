@@ -7,6 +7,34 @@ const { checkDuplicates }          = require('../services/duplicateDetectionServ
 const { checkContentAgainstRules } = require('../services/moderationService');
 const { CREDIBILITY_SCORES, changeUserCredibility } = require('../services/credibilityService');
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Given an array of thread documents (plain objects) and an authenticated user,
+ * batch-queries the Vote collection and attaches a `userVote` field to each
+ * thread ('upvote' | 'downvote' | null).
+ *
+ * No-ops gracefully when there is no authenticated user.
+ */
+const attachUserVotes = async (threads, user) => {
+  if (!user || threads.length === 0) return threads;
+
+  const threadIds = threads.map(t => t._id);
+  const votes = await Vote.find({
+    threadId: { $in: threadIds },
+    userId: user._id,
+    commentId: null
+  }).lean();
+
+  const voteMap = new Map();
+  votes.forEach(v => voteMap.set(v.threadId.toString(), v.type));
+
+  return threads.map(t => ({
+    ...t,
+    userVote: voteMap.get(t._id.toString()) || null
+  }));
+};
+
 // GET /api/threads
 // Supports pagination, category/author filters, and three sort orders:
 //   trending (default) — by precomputed score
@@ -40,12 +68,15 @@ const getThreads = async (req, res, next) => {
       .skip(skip)
       .limit(limit)
       .populate('authorId',   'username role credibilityScore isSuspended')
-      .populate('categoryId', 'name');
+      .populate('categoryId', 'name')
+      .lean();
 
     const total = await Thread.countDocuments(query);
 
+    const threadsWithVotes = await attachUserVotes(threads, req.user);
+
     res.status(200).json({
-      threads,
+      threads: threadsWithVotes,
       total,
       totalPages:  Math.ceil(total / limit),
       currentPage: page
@@ -62,7 +93,8 @@ const getThreadById = async (req, res, next) => {
   try {
     const thread = await Thread.findById(req.params.id)
       .populate('authorId',   'username role credibilityScore isSuspended')
-      .populate('categoryId', 'name');
+      .populate('categoryId', 'name')
+      .lean();
 
     if (!thread) return res.status(404).json({ message: 'Thread not found' });
 
@@ -70,6 +102,18 @@ const getThreadById = async (req, res, next) => {
     const isAdmin  = req.user && (req.user.role === 'admin' || req.user.role === 'superadmin');
     if (thread.isHidden && !isAuthor && !isAdmin) {
       return res.status(404).json({ message: 'Thread not found' });
+    }
+
+    // Attach userVote for the logged-in user
+    if (req.user) {
+      const vote = await Vote.findOne({
+        threadId: thread._id,
+        userId: req.user._id,
+        commentId: null
+      }).lean();
+      thread.userVote = vote ? vote.type : null;
+    } else {
+      thread.userVote = null;
     }
 
     res.status(200).json(thread);
@@ -249,12 +293,15 @@ const searchThreads = async (req, res, next) => {
         .skip(skip)
         .limit(limit)
         .populate('authorId',   'username role credibilityScore isSuspended')
-        .populate('categoryId', 'name'),
+        .populate('categoryId', 'name')
+        .lean(),
       Thread.countDocuments(query)
     ]);
 
+    const threadsWithVotes = await attachUserVotes(threads, req.user);
+
     res.status(200).json({
-      threads,
+      threads: threadsWithVotes,
       totalPages:  Math.ceil(total / limit),
       currentPage: page
     });
@@ -304,12 +351,15 @@ const getSavedThreads = async (req, res, next) => {
         .skip(skip)
         .limit(limit)
         .populate('authorId',   'username role credibilityScore isSuspended')
-        .populate('categoryId', 'name'),
+        .populate('categoryId', 'name')
+        .lean(),
       Thread.countDocuments(query)
     ]);
 
+    const threadsWithVotes = await attachUserVotes(threads, req.user);
+
     res.status(200).json({
-      threads,
+      threads: threadsWithVotes,
       totalPages:  Math.ceil(total / limit),
       currentPage: page
     });

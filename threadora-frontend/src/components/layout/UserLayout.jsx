@@ -58,10 +58,11 @@ const UserLayout = () => {
     if (mainScrollRef.current) {
       mainScrollRef.current.scrollTo({ top: 0 });
     }
+    window.scrollTo({ top: 0 });
   }, [location.pathname]);
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col md:flex-row bg-[#0B0F14] text-[#E0E2EA]">
+    <div className="min-h-screen flex flex-col md:flex-row bg-[#0B0F14] text-[#E0E2EA] md:h-screen md:overflow-hidden">
       {/* Mobile Topbar */}
       <div className="md:hidden sticky top-0 z-50 px-5 py-4 bg-[#0B0F14] border-b border-white/[0.05] flex justify-between items-center">
         <Link to="/dashboard" className="text-xl font-bold tracking-tight bg-gradient-to-r from-[#6366F1] to-[#22D3EE] bg-clip-text text-transparent hover:opacity-80 transition-opacity">Threadora</Link>
@@ -98,7 +99,7 @@ const UserLayout = () => {
       />
 
       {/* Main Content Area */}
-      <main ref={mainScrollRef} className="flex-1 min-w-0 relative h-screen overflow-y-auto overscroll-y-contain custom-scrollbar">
+      <main ref={mainScrollRef} className="flex-1 min-w-0 relative w-full md:h-screen md:overflow-y-auto md:overscroll-y-contain custom-scrollbar">
         {/* Desktop Search Header */}
         <header className="hidden md:flex sticky top-0 z-30 bg-[#0B0F14]/80 backdrop-blur-md border-b border-[rgba(255,255,255,0.08)] px-8 py-4 justify-between items-center">
           <h2 className="text-lg font-semibold text-white">

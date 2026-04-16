@@ -1,8 +1,12 @@
 const Vote    = require('../models/Vote');
 const Thread  = require('../models/Thread');
 const Comment = require('../models/Comment');
-const { updateThreadScore } = require('../services/rankingService');
+const { updateThreadScoreFromDoc } = require('../services/rankingService');
 const { CREDIBILITY_SCORES, changeUserCredibility } = require('../services/credibilityService');
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+// Fire-and-forget: runs a promise but logs errors instead of crashing the request.
+const background = (promise) => promise.catch(err => console.error('background task error:', err));
 
 // ─── Thread Voting ────────────────────────────────────────────────────────────
 //
@@ -13,6 +17,10 @@ const { CREDIBILITY_SCORES, changeUserCredibility } = require('../services/credi
 //
 // Vote counts are stored denormalised on Thread for fast sorting; the Vote
 // collection is the source of truth for "did this user vote?" lookups.
+//
+// Performance: the response is sent as soon as the vote record and thread
+// counters are persisted. Score recomputation and credibility adjustments
+// run in the background (fire-and-forget).
 
 const handleVote = async (req, res, next, type) => {
   try {
@@ -34,16 +42,19 @@ const handleVote = async (req, res, next, type) => {
         else                     thread.downvotes  = Math.max(0, thread.downvotes - 1);
 
         await thread.save();
-        await updateThreadScore(threadId);
-        await changeUserCredibility(
+
+        // Background: score + credibility
+        background(updateThreadScoreFromDoc(thread));
+        background(changeUserCredibility(
           thread.authorId,
           type === 'upvote' ? -CREDIBILITY_SCORES.RECEIVE_UPVOTE : -CREDIBILITY_SCORES.RECEIVE_DOWNVOTE
-        );
+        ));
 
         return res.status(200).json({
-          message: `${type} removed`,
+          message:   `${type} removed`,
           upvotes:   thread.upvotes,
-          downvotes: thread.downvotes
+          downvotes: thread.downvotes,
+          userVote:  null
         });
       } else {
         // Flip: reverse old credibility delta, apply new one
@@ -60,20 +71,23 @@ const handleVote = async (req, res, next, type) => {
         }
 
         await thread.save();
-        await updateThreadScore(threadId);
-        await changeUserCredibility(
+
+        // Background: score + credibility
+        background(updateThreadScoreFromDoc(thread));
+        background(changeUserCredibility(
           thread.authorId,
           oldType === 'upvote' ? -CREDIBILITY_SCORES.RECEIVE_UPVOTE : -CREDIBILITY_SCORES.RECEIVE_DOWNVOTE
-        );
-        await changeUserCredibility(
+        ));
+        background(changeUserCredibility(
           thread.authorId,
           type === 'upvote' ? CREDIBILITY_SCORES.RECEIVE_UPVOTE : CREDIBILITY_SCORES.RECEIVE_DOWNVOTE
-        );
+        ));
 
         return res.status(200).json({
           message:   `Changed to ${type}`,
           upvotes:   thread.upvotes,
-          downvotes: thread.downvotes
+          downvotes: thread.downvotes,
+          userVote:  type
         });
       }
     }
@@ -86,16 +100,19 @@ const handleVote = async (req, res, next, type) => {
     else                   thread.downvotes += 1;
 
     await thread.save();
-    await updateThreadScore(threadId);
-    await changeUserCredibility(
+
+    // Background: score + credibility
+    background(updateThreadScoreFromDoc(thread));
+    background(changeUserCredibility(
       thread.authorId,
       type === 'upvote' ? CREDIBILITY_SCORES.RECEIVE_UPVOTE : CREDIBILITY_SCORES.RECEIVE_DOWNVOTE
-    );
+    ));
 
     res.status(200).json({
       message:   `${type} registered`,
       upvotes:   thread.upvotes,
-      downvotes: thread.downvotes
+      downvotes: thread.downvotes,
+      userVote:  type
     });
   } catch (error) {
     next(error);
@@ -128,10 +145,12 @@ const handleCommentVote = async (req, res, next, type) => {
 
         comment.score = comment.upvotes - comment.downvotes;
         await comment.save();
-        await changeUserCredibility(
+
+        // Background: credibility
+        background(changeUserCredibility(
           comment.authorId,
           type === 'upvote' ? -CREDIBILITY_SCORES.RECEIVE_UPVOTE : -CREDIBILITY_SCORES.RECEIVE_DOWNVOTE
-        );
+        ));
 
         return res.status(200).json({
           message:   `${type} removed`,
@@ -155,14 +174,16 @@ const handleCommentVote = async (req, res, next, type) => {
 
         comment.score = comment.upvotes - comment.downvotes;
         await comment.save();
-        await changeUserCredibility(
+
+        // Background: credibility
+        background(changeUserCredibility(
           comment.authorId,
           oldType === 'upvote' ? -CREDIBILITY_SCORES.RECEIVE_UPVOTE : -CREDIBILITY_SCORES.RECEIVE_DOWNVOTE
-        );
-        await changeUserCredibility(
+        ));
+        background(changeUserCredibility(
           comment.authorId,
           type === 'upvote' ? CREDIBILITY_SCORES.RECEIVE_UPVOTE : CREDIBILITY_SCORES.RECEIVE_DOWNVOTE
-        );
+        ));
 
         return res.status(200).json({
           message:   `Changed to ${type}`,
@@ -182,10 +203,12 @@ const handleCommentVote = async (req, res, next, type) => {
 
     comment.score = comment.upvotes - comment.downvotes;
     await comment.save();
-    await changeUserCredibility(
+
+    // Background: credibility
+    background(changeUserCredibility(
       comment.authorId,
       type === 'upvote' ? CREDIBILITY_SCORES.RECEIVE_UPVOTE : CREDIBILITY_SCORES.RECEIVE_DOWNVOTE
-    );
+    ));
 
     res.status(200).json({
       message:   `${type} registered`,

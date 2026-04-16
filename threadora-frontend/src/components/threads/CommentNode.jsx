@@ -47,8 +47,9 @@ export default function CommentNode({
   const [replyContent, setReplyContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCollapsed, setIsCollapsed]   = useState(false);
-  const [localScore, setLocalScore]     = useState(comment.score || 0);
-  const [isVoting, setIsVoting]         = useState(false);
+  const [localScore, setLocalScore]       = useState(comment.score || 0);
+  const [localUserVote, setLocalUserVote] = useState(comment.userVote || null);
+  const [isVoting, setIsVoting]           = useState(false);
   const [isEditing, setIsEditing]       = useState(false);
   const [editContent, setEditContent]   = useState(comment.content);
   const [showOptions, setShowOptions]   = useState(false);
@@ -69,12 +70,40 @@ export default function CommentNode({
     if (!user) { toast.error('Sign in to vote on comments'); return; }
     if (isVoting) return;
     setIsVoting(true);
+
+    // Optimistic update
+    const prevScore = localScore;
+    const prevVote  = localUserVote;
+    const voteType  = direction === 'up' ? 'upvote' : 'downvote';
+
+    let newScore = localScore;
+    let newVote;
+    if (prevVote === voteType) {
+      // Undo
+      newScore += (voteType === 'upvote' ? -1 : 1);
+      newVote = null;
+    } else if (prevVote) {
+      // Flip
+      newScore += (voteType === 'upvote' ? 2 : -2);
+      newVote = voteType;
+    } else {
+      // New vote
+      newScore += (voteType === 'upvote' ? 1 : -1);
+      newVote = voteType;
+    }
+    setLocalScore(newScore);
+    setLocalUserVote(newVote);
+
     try {
       const data = direction === 'up'
         ? await upvoteComment(comment._id)
         : await downvoteComment(comment._id);
       setLocalScore(data.score);
+      setLocalUserVote(data.userVote);
     } catch {
+      // Revert optimistic update
+      setLocalScore(prevScore);
+      setLocalUserVote(prevVote);
       toast.error('Failed to vote');
     } finally {
       setIsVoting(false);
@@ -300,6 +329,7 @@ export default function CommentNode({
                   onDownvote={() => vote('down')}
                   variant="comment"
                   disabled={isVoting || isDeleted}
+                  userVote={localUserVote}
                 />
 
                 {/* Reply */}

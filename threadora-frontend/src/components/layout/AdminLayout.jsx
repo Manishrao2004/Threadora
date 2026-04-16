@@ -11,6 +11,7 @@ const AdminLayout = () => {
   // Close menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
+    window.scrollTo({ top: 0 });
   }, [location.pathname]);
 
   const isSuperAdmin = user?.role === 'superadmin';
@@ -27,7 +28,7 @@ const AdminLayout = () => {
   ];
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col md:flex-row bg-[#0B0F14] text-[#E0E2EA]">
+    <div className="min-h-screen flex flex-col md:flex-row bg-[#0B0F14] text-[#E0E2EA] md:h-screen md:overflow-hidden">
       {/* Mobile Topbar */}
       <div className="md:hidden sticky top-0 z-50 px-5 py-4 bg-[#0B0F14] border-b border-white/[0.05] flex justify-between items-center">
         <span className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
@@ -130,7 +131,7 @@ const AdminLayout = () => {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 bg-[#050505] h-screen overflow-y-auto overscroll-y-contain">
+      <main className="flex-1 min-w-0 bg-[#050505] w-full md:h-screen md:overflow-y-auto md:overscroll-y-contain">
         <div className="p-6 md:p-10 max-w-7xl mx-auto">
           <Outlet />
         </div>

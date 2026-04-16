@@ -103,6 +103,7 @@ export default function ThreadCard({ thread, onVote, onDelete, onEdit }) {
             onUpvote={(e) => { e.preventDefault(); onVote(e, thread._id, 'up'); }}
             onDownvote={(e) => { e.preventDefault(); onVote(e, thread._id, 'down'); }}
             variant="card"
+            userVote={thread.userVote || null}
           />
 
           {/* Content Column */}
