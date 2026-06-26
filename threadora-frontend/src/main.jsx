@@ -8,7 +8,7 @@ import './styles/index.css';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
+console.log(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 if (!GOOGLE_CLIENT_ID && import.meta.env.DEV) {
   console.warn('VITE_GOOGLE_CLIENT_ID is missing in your .env file. Google Login will not work.');
 }
