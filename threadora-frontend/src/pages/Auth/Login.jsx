@@ -112,14 +112,6 @@ export default function Login() {
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
-                <button
-  onClick={() => {
-    const w = window.open("https://accounts.google.com", "_blank");
-    console.log(w);
-  }}
->
-  Test Popup
-</button>
               </div>
             </div>
 
